@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn(){ return request.auth != null; }
+    function isAdmin(){ return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; }
+    function isDriver(){ return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'driver'; }
+    // Public customers may create an order, but cannot read or edit orders.
+    match /orders/{orderId} {
+      allow create: if request.resource.data.keys().hasOnly(['name','phone','service','vehicle','pickup','destination','schedule','details','payment','status','paymentStatus','createdAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 100
+        && request.resource.data.phone is string && request.resource.data.phone.size() >= 8 && request.resource.data.phone.size() <= 20
+        && request.resource.data.pickup is string && request.resource.data.pickup.size() >= 5
+        && request.resource.data.destination is string && request.resource.data.destination.size() >= 5;
+      allow read, update, delete: if isAdmin();
+    }
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      // Role documents must be created by the project owner/admin using Console initially.
+      allow create, update, delete: if isAdmin();
+    }
+    match /{document=**} { allow read, write: if isAdmin(); }
+  }
+}
