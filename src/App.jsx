@@ -22,7 +22,7 @@ export default function App() {
     { icon: "🚌", nama: "Transportasi", desc: "Transportasi orang maupun barang sesuai kesepakatan." },
     ];
 
-    const kirimWhatsApp = (e) => {
+    const kirimWhatsApp = async (e) => {
       e.preventDefault();
 
       const pesan = `Halo TULUNG YA MAS 👋
@@ -36,7 +36,19 @@ Tujuan: ${form.tujuan}
 Detail pesanan: ${form.detail}
 
 Mohon informasi tarif dan ketersediaannya. Terima kasih.`;
-
+try {
+  await addDoc(collection(db, "pesanan"), {
+    nama: form.nama,
+    layanan: form.layanan,
+    asal: form.asal,
+    tujuan: form.tujuan,
+    detail: form.detail,
+    status: "baru",
+    waktuPesan: serverTimestamp()
+  });
+} catch (error) {
+  console.error("Gagal menyimpan pesanan:", error);
+}
       window.open(
         `https://wa.me/${nomorWA}?text=${encodeURIComponent(pesan)}`,
         "_blank"
